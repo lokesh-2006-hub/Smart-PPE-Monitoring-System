@@ -1,0 +1,82 @@
+# Environment variables
+.env
+.env.local
+.env.production
+*.env
+
+# Database credentials
+config.py
+secrets.py
+credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads/User Data
+uploads/
+data/known_faces/  # Contains worker photos
+backend/data/known_faces/
+
+# Model files (too large for git)
+*.pt
+*.onnx
+*.tflite
+*.weights
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# MySQL dumps
+*.sql
+
+# Jetbrains
+.idea/
+
+# pytest
+.pytest_cache/
+.coverage
+
+# mypy
+.mypy_cache/

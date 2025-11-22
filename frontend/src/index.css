@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+ 
+@layer base {
+  :root {
+    /* Formal Professional Corporate Theme */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+ 
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+ 
+    /* Navy Blue - Primary Corporate Color */
+    --primary: 221 83% 32%;
+    --primary-foreground: 0 0% 100%;
+ 
+    /* Slate Gray - Secondary Professional */
+    --secondary: 215 16% 47%;
+    --secondary-foreground: 0 0% 100%;
+ 
+    /* Light Background - Subtle and Clean */
+    --muted: 210 40% 98%;
+    --muted-foreground: 215 14% 34%;
+ 
+    /* Steel Blue - Accent for Interactive Elements */
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+ 
+    /* Professional Error Red */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+ 
+    /* Success Green - Professional Forest Green */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+ 
+    /* Warning Amber - Professional */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+ 
+    /* Borders and Inputs - Subtle Gray */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 32%;
+ 
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    /* Dark Mode - Corporate Sophistication */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+ 
+    /* Light Steel - Primary in Dark Mode */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+ 
+    /* Muted Blue Gray - Secondary */
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+ 
+    /* Accent Blue - Sophisticated */
+    --accent: 217 91% 60%;
+    --accent-foreground: 222 47% 11%;
+ 
+    /* Dark Mode Error */
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    /* Dark Mode Success */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+ 
+    /* Dark Mode Warning */
+    --warning: 38 92% 50%;
+    --warning-foreground: 222 47% 11%;
+ 
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Formal Corporate Utility Classes */
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/90;
+  }
+  
+  .btn-success {
+    @apply bg-success text-success-foreground hover:bg-success/90;
+  }
+  
+  .btn-danger {
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
+  }
+}

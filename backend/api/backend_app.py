@@ -323,6 +323,20 @@ def update_attendance(payload: PPEPayload):
                 # PPE check passed - set worker to active
                 cursor.execute("UPDATE workers SET status = 'active' WHERE id = %s", (worker_id,))
                 print(f"✅ Worker {payload.name} set to ACTIVE (PPE passed)")
+                
+                # AUTO-RESOLVE ALERTS: If worker is now compliant, resolve any active alerts
+                try:
+                    cursor.execute("""
+                        UPDATE alerts 
+                        SET status = 'resolved', resolution_note = 'Auto-resolved: PPE compliance verified'
+                        WHERE worker_id = %s AND status = 'active'
+                    """, (worker_id,))
+                    resolved_count = cursor.rowcount
+                    if resolved_count > 0:
+                        print(f"✅ Auto-resolved {resolved_count} active alerts for {payload.name}")
+                        conn.commit()
+                except Exception as resolve_err:
+                    print(f"⚠️ Failed to auto-resolve alerts: {resolve_err}")
             else:
                 # PPE check failed - set worker to inactive and create alert
                 cursor.execute("UPDATE workers SET status = 'inactive' WHERE id = %s", (worker_id,))
@@ -624,6 +638,100 @@ class AlertCreate(BaseModel):
 
 class AlertResolve(BaseModel):
     resolution_note: Optional[str] = None
+
+class RFIDAttendancePayload(BaseModel):
+    rfid_tag: str
+    timestamp: Optional[int] = None
+    gate: Optional[str] = "Main Gate"
+
+# ==================== RFID ATTENDANCE API ====================
+
+@app.post("/api/attendance/rfid", response_model=Dict)
+def mark_rfid_attendance(payload: RFIDAttendancePayload):
+    """Mark attendance using RFID tag"""
+    print(f"\n*** RFID ATTENDANCE CALLED - Tag: {payload.rfid_tag} ***\n")
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # 1. Find worker by RFID tag
+        cursor.execute("SELECT * FROM workers WHERE rfid_tag = %s", (payload.rfid_tag,))
+        worker = cursor.fetchone()
+        
+        if not worker:
+            print(f"⚠️  Unknown RFID tag: {payload.rfid_tag}")
+            # Optional: Log unknown tag attempt
+            return {
+                "status": "error", 
+                "message": "Unknown RFID tag",
+                "rfid_tag": payload.rfid_tag
+            }
+            
+        worker_id = worker['id']
+        worker_name = worker['name']
+        
+        # 2. Mark attendance
+        epoch = payload.timestamp or int(time.time())
+        ts = datetime.fromtimestamp(epoch)
+        
+        # Check if already checked in today
+        cursor.execute("""
+            SELECT id FROM attendance 
+            WHERE person_id = %s AND DATE(detected_at) = DATE(%s)
+            ORDER BY detected_at DESC LIMIT 1
+        """, (worker_id, ts))
+        existing = cursor.fetchone()
+        
+        if existing:
+            # Update existing record
+            cursor.execute("""
+                UPDATE attendance 
+                SET detected_at = %s, source = 'rfid', overall_status = 'pass'
+                WHERE id = %s
+            """, (ts, existing['id']))
+            record_id = existing['id']
+            action = "updated"
+        else:
+            # Create new record
+            # Create a dummy ppe_status for RFID (all passed or empty)
+            ppe_status = json.dumps({
+                "helmet": True, "jacket": True, "gloves": True, "shoes": True, "headphone": True
+            })
+            
+            cursor.execute("""
+                INSERT INTO attendance 
+                (person_id, person_name, detected_at, source, ppe_status, overall_status, raw_payload)
+                VALUES (%s, %s, %s, 'rfid', %s, 'pass', %s)
+            """, (
+                worker_id, 
+                worker_name, 
+                ts, 
+                ppe_status,
+                json.dumps(payload.dict())
+            ))
+            record_id = cursor.lastrowid
+            action = "created"
+            
+        # 3. Update worker status to active
+        cursor.execute("UPDATE workers SET status = 'active' WHERE id = %s", (worker_id,))
+        conn.commit()
+        
+        print(f"✅ Attendance marked for {worker_name} ({action})")
+        
+        return {
+            "status": "success",
+            "message": f"Attendance marked for {worker_name}",
+            "worker_name": worker_name,
+            "action": action,
+            "record_id": record_id
+        }
+        
+    except Exception as e:
+        conn.rollback()
+        print(f"❌ Error in mark_rfid_attendance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
 
 # ==================== WORKERS MANAGEMENT APIs ====================
 

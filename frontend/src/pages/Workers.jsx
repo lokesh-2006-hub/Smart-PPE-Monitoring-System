@@ -248,7 +248,7 @@ const WorkersPage = () => {
                                             <div className="flex items-center space-x-2">
                                                 {worker.photo_url ? (
                                                     <img
-                                                        src={`http://localhost:8000/api/workers/${worker.id}/photo`}
+                                                        src={worker.photo_url.startsWith('data:image') ? worker.photo_url : `${client.defaults.baseURL || import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/workers/${worker.id}/photo`}
                                                         alt={worker.name}
                                                         className="h-10 w-10 rounded-full object-cover border-2 border-primary/20"
                                                         onError={(e) => {

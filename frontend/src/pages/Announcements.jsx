@@ -14,7 +14,8 @@ const Announcements = () => {
     const fetchAnnouncements = async () => {
         try {
             // "Integration" happens here!
-            const res = await axios.get('http://localhost:8000/announcement');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const res = await axios.get(`${apiUrl}/announcement`);
             setList(res.data);
         } catch (err) {
             console.error("Error fetching:", err);
@@ -24,7 +25,8 @@ const Announcements = () => {
     const handleSubmit = async () => {
         try {
             // "Posting" data happens here!
-            await axios.post('http://localhost:8000/announcement', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            await axios.post(`${apiUrl}/announcement`, {
                 content: message,
                 author: author
             });

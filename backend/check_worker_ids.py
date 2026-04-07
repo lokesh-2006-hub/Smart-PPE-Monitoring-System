@@ -35,6 +35,8 @@ if alerts:
         print(f"Alert ID: {alert['id']}, Worker: {alert['worker_id']}, Message: {alert['message']}")
 else:
     print("❌ NO ALERTS FOUND")
-
+query="UPDATE workers SET address = '2,gopal street' WHERE name='lokesh'"
+cursor.execute(query)
+conn.commit()
 cursor.close()
 conn.close()

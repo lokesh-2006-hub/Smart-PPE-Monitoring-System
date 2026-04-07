@@ -7,6 +7,7 @@ import Reports from './pages/Reports';
 import Workers from './pages/Workers';
 import Attendance from './pages/Attendance';
 import Alerts from './pages/Alerts';
+import Announcements from './pages/Announcements';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { UserRoleProvider, useUserRole } from './contexts/UserRoleContext';
 import SettingsPage from './pages/Settings';
@@ -19,7 +20,8 @@ const navigationItems = [
     { icon: ClipboardList, label: "Attendance", to: "/attendance", roles: ['admin', 'gate_operator', 'safety_manager'] },
     { icon: FileBarChart, label: "Reports", to: "/reports", roles: ['admin', 'safety_manager'] },
     { icon: AlertTriangle, label: "Alerts", to: "/alerts", roles: ['admin', 'gate_operator', 'safety_manager'] },
-    { icon: Settings, label: "Settings", to: "/settings", roles: ['admin'] }
+    { icon: Settings, label: "Settings", to: "/settings", roles: ['admin'] },
+    { icon: AlertTriangle, label: "Announcements", to: "/announcements", roles: ['admin', 'gate_operator', 'safety_manager'] },
 ];
 
 const SidebarItem = ({ icon: Icon, label, to }) => {
@@ -137,6 +139,7 @@ const App = () => {
                         <Route path="/reports" element={<Layout><Reports /></Layout>} />
                         <Route path="/alerts" element={<Layout><Alerts /></Layout>} />
                         <Route path="/settings" element={<Layout><SettingsPage /></Layout>} />
+                        <Route path="/announcements" element={<Announcements />} />
                     </Routes>
                 </Router>
             </UserRoleProvider>

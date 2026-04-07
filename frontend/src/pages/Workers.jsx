@@ -21,7 +21,8 @@ const WorkersPage = () => {
         department: '',
         rfid_tag: '',
         phone: '',
-        email: ''
+        email: '',
+        address:''
         // status removed - automatically managed by PPE system
     });
 
@@ -87,7 +88,8 @@ const WorkersPage = () => {
             department: worker.department || '',
             rfid_tag: worker.rfid_tag || '',
             phone: worker.phone || '',
-            email: worker.email || ''
+            email: worker.email || '',
+            address:worker.address || ''
             // status removed - automatically managed by PPE system
         });
         setShowEditModal(true);
@@ -100,7 +102,8 @@ const WorkersPage = () => {
             department: '',
             rfid_tag: '',
             phone: '',
-            email: ''
+            email: '',
+            address:''
             // status removed - automatically managed by PPE system
         });
         setSelectedWorker(null);
@@ -220,7 +223,9 @@ const WorkersPage = () => {
                                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Department</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">RFID Tag</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
+                                <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Address</th>
                                 <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Actions</th>
+                                
                             </tr>
                         </thead>
                         <tbody>
@@ -268,6 +273,7 @@ const WorkersPage = () => {
                                         <td className="px-4 py-3 text-sm">
                                             <StatusBadge status={worker.status} />
                                         </td>
+                                        <td className="px-4 py-3 text-sm">{worker.address || 'N/A'}</td>
                                         <td className="px-4 py-3 text-sm">
                                             <div className="flex space-x-2">
                                                 <button
@@ -286,6 +292,7 @@ const WorkersPage = () => {
                                                 </button>
                                             </div>
                                         </td>
+                                        
                                     </tr>
                                 ))
                             )}
@@ -335,6 +342,15 @@ const WorkersPage = () => {
                                     type="text"
                                     value={formData.rfid_tag}
                                     onChange={(e) => setFormData({ ...formData, rfid_tag: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                                />
+                            </div>
+                             <div>
+                                <label className="block text-sm font-medium mb-1">address</label>
+                                <input
+                                    type="text"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                                 />
                             </div>
@@ -388,6 +404,15 @@ const WorkersPage = () => {
                                     type="text"
                                     value={formData.department}
                                     onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">address</label>
+                                <input
+                                    type="text"
+                                    value={formData.address}
+                                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                     className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                                 />
                             </div>

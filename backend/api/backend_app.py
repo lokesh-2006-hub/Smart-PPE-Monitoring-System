@@ -10,6 +10,7 @@ import csv
 import io
 import sys
 import os
+from typing import List
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -122,6 +123,8 @@ def init_db():
             "INSERT INTO settings (category, setting_key, setting_value) VALUES (%s, %s, %s)",
             default_settings
         )
+        cursor.execute("ALTER TABLE workers ADD COLUMN department VARCHAR(100)")
+        cursor.execute("ALTER TABLE workers ADD COLUMN address VARCHAR(20)")
     
     conn.commit()
     cursor.close()
@@ -150,17 +153,38 @@ class SettingsUpdate(BaseModel):
     category: str
     settings: Dict[str, Any]
 
-
+class Announcement(BaseModel):
+    content:str
+    author:str
 # --- FastAPI app ---
 app = FastAPI(title="Smart PPE Compliance API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=os.getenv("ALLOWED_ORIGINS", "*").split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.post("/announcement",response_model=Announcement)
+def create_announcement(payload:Announcement):
+    conn=get_db_connection()
+    cursor=conn.cursor()
+    cursor.execute("INSERT INTO announcement (content,author) VALUES (%s,%s)",(payload.content,payload.author))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return payload
+@app.get("/announcement",response_model=List[Dict])
+def get_announcement():
+    conn=get_db_connection()
+    cursor=conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM announcement ORDER BY created_at DESC")
+    result=cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return result
 
 @app.on_event("startup")
 def on_startup():
@@ -616,6 +640,7 @@ class WorkerCreate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     status: Optional[str] = "active"
+    address: Optional[str] = None
 
 class WorkerUpdate(BaseModel):
     employee_id: Optional[str] = None
@@ -625,6 +650,7 @@ class WorkerUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     status: Optional[str] = None
+    address: Optional[str] = None
 
 # --- Alert Schemas ---
 class AlertCreate(BaseModel):
@@ -741,7 +767,8 @@ def list_workers(
     limit: int = 100,
     search: Optional[str] = None,
     department: Optional[str] = None,
-    status: Optional[str] = None
+    status: Optional[str] = None,
+    address: Optional[str] = None
 ):
     """List all workers with pagination and filters"""
     conn = get_db_connection()
@@ -797,8 +824,8 @@ def create_worker(worker: WorkerCreate):
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
-            INSERT INTO workers (employee_id, name, department, rfid_tag, phone, email, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO workers (employee_id, name, department, rfid_tag, phone, email, status, address)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             worker.employee_id,
             worker.name,
@@ -806,7 +833,8 @@ def create_worker(worker: WorkerCreate):
             worker.rfid_tag,
             worker.phone,
             worker.email,
-            worker.status
+            worker.status,
+            worker.address
         ))
         conn.commit()
         
@@ -872,6 +900,9 @@ def update_worker(worker_id: int, worker: WorkerUpdate):
         if worker.status is not None:
             updates.append("status = %s")
             params.append(worker.status)
+        if worker.address is not None:
+            updates.append("address = %s")
+            params.append(worker.address)
         
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")

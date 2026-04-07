@@ -9,7 +9,6 @@ flask-cors
 mysql-connector-python
 python-dotenv
 pyserial
-
 opencv-python
 ultralytics
 face_recognition

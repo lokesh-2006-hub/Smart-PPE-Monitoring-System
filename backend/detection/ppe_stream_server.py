@@ -22,6 +22,9 @@ except ImportError:
     face_recognition = None
     FACE_RECOGNITION_AVAILABLE = False
 
+# Default API URL
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
+
 # --- AttendanceSystem class (copied from main script) ---
 class AttendanceSystem:
     def __init__(self, known_faces_dir, attendance_file_name=None, use_lbph_fallback=False):
@@ -159,7 +162,7 @@ class AttendanceSystem:
 
 # --- Helper functions ---
 def send_to_api(name, status, ppe_data, source=None):
-    url = "http://127.0.0.1:8000/update_attendance"
+    url = f"{API_URL}/update_attendance"
     data = {
         "name": name,
         "time": int(time.time()),
@@ -506,7 +509,11 @@ if __name__ == '__main__':
     parser.add_argument('--source', default='0', help='video file or camera index (0)')
     parser.add_argument('--known-faces', default=os.path.join(backend_root, 'data', 'known_faces'), help='Known faces directory')
     parser.add_argument('--port', default=5000, type=int, help='Flask server port')
+    parser.add_argument('--api-url', default=None, help='Backend API URL')
     args = parser.parse_args()
+
+    if args.api_url:
+        API_URL = args.api_url
 
     # Start detection thread
     detection_thread = threading.Thread(

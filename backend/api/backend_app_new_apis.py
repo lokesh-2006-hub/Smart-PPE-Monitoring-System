@@ -19,7 +19,7 @@ class WorkerUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     status: Optional[str] = None
-
+    address:Optional[str]=None
 # --- Alert Schemas ---
 class AlertCreate(BaseModel):
     worker_id: Optional[int] = None
@@ -41,7 +41,8 @@ def list_workers(
     limit: int = 100,
     search: Optional[str] = None,
     department: Optional[str] = None,
-    status: Optional[str] = None
+    status: Optional[str] = None,
+    address:Optional[str]=None
 ):
     """List all workers with pagination and filters"""
     conn = get_db_connection()
@@ -97,8 +98,8 @@ def create_worker(worker: WorkerCreate):
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
-            INSERT INTO workers (employee_id, name, department, rfid_tag, phone, email, status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO workers (employee_id, name, department, rfid_tag, phone, email, status,address)
+            VALUES (%s, %s, %s, %s, %s, %s, %s,%s)
         """, (
             worker.employee_id,
             worker.name,
@@ -106,7 +107,8 @@ def create_worker(worker: WorkerCreate):
             worker.rfid_tag,
             worker.phone,
             worker.email,
-            worker.status
+            worker.status,
+            worker.address
         ))
         conn.commit()
         
@@ -169,7 +171,9 @@ def update_worker(worker_id: int, worker: WorkerUpdate):
         if worker.status is not None:
             updates.append("status = %s")
             params.append(worker.status)
-        
+        if worker.address is not None:
+            updates.append("address =%s")
+            params.append(worker.address)
         if not updates:
             raise HTTPException(status_code=400, detail="No fields to update")
         

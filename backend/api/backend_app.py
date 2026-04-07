@@ -52,7 +52,7 @@ def init_db():
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     
-    # Persons table
+    # 1. Persons table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS persons (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -63,18 +63,85 @@ def init_db():
     )
     """)
     
-    # Attendance table
+    # 2. Workers table (New Redesign)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS workers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        employee_id VARCHAR(50) UNIQUE,
+        name VARCHAR(255) NOT NULL,
+        department VARCHAR(100),
+        rfid_tag VARCHAR(50) UNIQUE,
+        status ENUM('active', 'inactive') DEFAULT 'active',
+        phone VARCHAR(20),
+        email VARCHAR(255),
+        photo_url VARCHAR(255),
+        address VARCHAR(20),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_employee_id (employee_id),
+        INDEX idx_status (status),
+        INDEX idx_department (department)
+    )
+    """)
+    
+    # 3. Attendance table
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS attendance (
         id INT AUTO_INCREMENT PRIMARY KEY,
         person_id INT,
         person_name VARCHAR(255) NOT NULL,
         detected_at DATETIME NOT NULL,
+        time_in DATETIME,
+        time_out DATETIME,
         source VARCHAR(100),
+        location VARCHAR(100),
+        gate VARCHAR(50),
         ppe_status TEXT NOT NULL,
         overall_status VARCHAR(50) NOT NULL,
         raw_payload TEXT,
         FOREIGN KEY (person_id) REFERENCES persons(id)
+    )
+    """)
+    
+    # 4. Alerts table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS alerts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        worker_id INT,
+        worker_name VARCHAR(255),
+        type VARCHAR(50),
+        severity ENUM('critical', 'warning', 'info') DEFAULT 'warning',
+        message TEXT,
+        location VARCHAR(100),
+        gate VARCHAR(50),
+        status ENUM('active', 'resolved') DEFAULT 'active',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        resolved_at DATETIME,
+        resolution_note TEXT,
+        response_time INT,
+        INDEX idx_status (status),
+        INDEX idx_severity (severity),
+        INDEX idx_worker_id (worker_id),
+        INDEX idx_created_at (created_at)
+    )
+    """)
+
+    # 5. Reports table
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS reports (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        report_type VARCHAR(100),
+        title VARCHAR(255),
+        start_date DATE,
+        end_date DATE,
+        file_path VARCHAR(255),
+        file_format VARCHAR(10),
+        total_records INT,
+        total_violations INT,
+        generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        generated_by VARCHAR(255),
+        INDEX idx_report_type (report_type),
+        INDEX idx_generated_at (generated_at)
     )
     """)
     
@@ -95,7 +162,6 @@ def init_db():
     count = cursor.fetchone()['cnt']
     
     if count == 0:
-        # Default settings
         default_settings = [
             ('system', 'ppe_items', json.dumps({'helmet': True, 'jacket': True, 'gloves': True, 'shoes': True, 'headphone': True})),
             ('system', 'detection_threshold', '0.5'),
@@ -123,8 +189,13 @@ def init_db():
             "INSERT INTO settings (category, setting_key, setting_value) VALUES (%s, %s, %s)",
             default_settings
         )
+    
+    # Clean fallback for older installations that might be missing these columns in workers
+    try:
         cursor.execute("ALTER TABLE workers ADD COLUMN department VARCHAR(100)")
         cursor.execute("ALTER TABLE workers ADD COLUMN address VARCHAR(20)")
+    except mysql.connector.Error:
+        pass
     
     conn.commit()
     cursor.close()

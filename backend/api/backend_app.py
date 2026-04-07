@@ -1777,6 +1777,8 @@ async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
             "message": message,
             "db_updated": db_updated
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

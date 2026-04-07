@@ -74,7 +74,7 @@ def init_db():
         status ENUM('active', 'inactive') DEFAULT 'active',
         phone VARCHAR(20),
         email VARCHAR(255),
-        photo_url VARCHAR(255),
+        photo_url LONGTEXT,
         address VARCHAR(20),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -194,6 +194,12 @@ def init_db():
     try:
         cursor.execute("ALTER TABLE workers ADD COLUMN department VARCHAR(100)")
         cursor.execute("ALTER TABLE workers ADD COLUMN address VARCHAR(20)")
+    except mysql.connector.Error:
+        pass
+    
+    # Render cloud: ensure photo_url is LONGTEXT to hold Base64 strings
+    try:
+        cursor.execute("ALTER TABLE workers MODIFY photo_url LONGTEXT")
     except mysql.connector.Error:
         pass
     
@@ -1708,13 +1714,13 @@ os.makedirs(KNOWN_FACES_DIR, exist_ok=True)
 
 @app.post("/api/workers/{worker_id}/photo")
 async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
-    """Upload worker photo to known_faces directory for face recognition"""
+    """Upload worker photo directly to Database securely as Base64 Text"""
     try:
         # Validate file type
         if not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
         
-        # Get worker name from database
+        # Get worker name from database to ensure they exist
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT name FROM workers WHERE id = %s", (worker_id,))
@@ -1727,50 +1733,54 @@ async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
         
         worker_name = worker['name']
         
-        # Create worker's subdirectory in known_faces
-        worker_face_dir = os.path.join(KNOWN_FACES_DIR, worker_name)
-        os.makedirs(worker_face_dir, exist_ok=True)
+        # Encode image directly to Base64 String
+        import base64
+        content = await file.read()
+        encoded = base64.b64encode(content).decode('utf-8')
+        mime_type = file.content_type
+        photo_base64 = f"data:{mime_type};base64,{encoded}"
         
-        # Generate unique filename with timestamp
-        import time
-        ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
-        timestamp = int(time.time())
-        filename = f"{worker_name}_{timestamp}.{ext}"
-        filepath = os.path.join(worker_face_dir, filename)
-        
-        # Save file
-        with open(filepath, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        
-        # Try to update database with relative path for photo_url (optional - won't fail if column doesn't exist)
-        photo_url = f"{worker_name}/{filename}"
+        # Save photo specifically inside the database
         try:
-            cursor.execute("UPDATE workers SET photo_url = %s WHERE id = %s", (photo_url, worker_id))
+            cursor.execute("UPDATE workers SET photo_url = %s WHERE id = %s", (photo_base64, worker_id))
             conn.commit()
             db_updated = True
+            message = "Photo saved directly to TiDB Cloud Database successfully."
         except mysql.connector.Error as db_err:
-            # If column doesn't exist, that's okay - photo is still saved to filesystem
-            print(f"Note: Could not update photo_url in database (column may not exist): {db_err}")
+            print(f"Error updating photo in DB: {db_err}")
             db_updated = False
             conn.rollback()
+            message = "Failed to save to database."
         
+        # Optionally, still write it to known_faces to allow for local dev usage
+        try:
+            worker_face_dir = os.path.join(KNOWN_FACES_DIR, worker_name)
+            os.makedirs(worker_face_dir, exist_ok=True)
+            import time
+            ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
+            timestamp = int(time.time())
+            filename = f"{worker_name}_{timestamp}.{ext}"
+            filepath = os.path.join(worker_face_dir, filename)
+            
+            with open(filepath, "wb") as f:
+                f.write(content)
+        except Exception as e:
+            print(f"Non-critical filesystem save error on Cloud: {e}")
+            filename = None
+
         cursor.close()
         conn.close()
-        
-        message = f"Photo saved to known_faces/{worker_name}/ for facial recognition"
-        if not db_updated:
-            message += " (saved to filesystem only - database not updated)"
         
         return {
             "status": "success",
             "filename": filename,
-            "photo_url": photo_url,
             "message": message,
             "db_updated": db_updated
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+from fastapi.responses import Response
 
 @app.get("/api/workers/{worker_id}/photo")
 def get_worker_photo(worker_id: int):
@@ -1787,13 +1797,19 @@ def get_worker_photo(worker_id: int):
         if not result['photo_url']:
             raise HTTPException(status_code=404, detail="No photo uploaded for this worker")
         
-        # Photo is stored in known_faces/{worker_name}/ directory
-        filepath = os.path.join(KNOWN_FACES_DIR, result['photo_url'])
-        
-        if not os.path.exists(filepath):
-            raise HTTPException(status_code=404, detail="Photo file not found")
-        
-        return FileResponse(filepath)
+        # If it's a base64 encoded photo from DB:
+        if result['photo_url'].startswith('data:image'):
+            import base64
+            header, encoded = result['photo_url'].split(",", 1)
+            mime_type = header.split(":")[1].split(";")[0]
+            img_bytes = base64.b64decode(encoded)
+            return Response(content=img_bytes, media_type=mime_type)
+        else:
+            # Fallback for old file path based deployment
+            filepath = os.path.join(KNOWN_FACES_DIR, result['photo_url'])
+            if not os.path.exists(filepath):
+                raise HTTPException(status_code=404, detail="Photo file not found")
+            return FileResponse(filepath)
     finally:
         cursor.close()
         conn.close()

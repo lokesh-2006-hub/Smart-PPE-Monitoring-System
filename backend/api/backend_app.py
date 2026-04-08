@@ -1812,16 +1812,32 @@ def get_worker_photo(worker_id: int):
             raise HTTPException(status_code=404, detail="No photo uploaded for this worker")
         
         # If it's a base64 encoded photo from DB:
-        if result['photo_url'].startswith('data:image'):
-            import base64
-            header, encoded = result['photo_url'].split(",", 1)
-            mime_type = header.split(":")[1].split(";")[0]
-            img_bytes = base64.b64decode(encoded)
-            return Response(content=img_bytes, media_type=mime_type)
+        photo_data = result['photo_url']
+        if photo_data and photo_data.startswith('data:image'):
+            try:
+                import base64
+                if "," in photo_data:
+                    header, encoded = photo_data.split(",", 1)
+                    mime_type = header.split(":")[1].split(";")[0]
+                else:
+                    # Fallback for raw base64 without header
+                    encoded = photo_data
+                    mime_type = "image/jpeg"
+                
+                img_bytes = base64.b64decode(encoded)
+                print(f"DEBUG: Successfully decoded Base64 image for worker {worker_id} ({len(img_bytes)} bytes)")
+                return Response(content=img_bytes, media_type=mime_type)
+            except Exception as e:
+                print(f"ERROR: Base64 decoding failed for worker {worker_id}: {e}")
+                raise HTTPException(status_code=500, detail="Image processing error")
         else:
             # Fallback for old file path based deployment
-            filepath = os.path.join(KNOWN_FACES_DIR, result['photo_url'])
+            if not photo_data:
+                raise HTTPException(status_code=404, detail="Worker has no photo data")
+                
+            filepath = os.path.join(KNOWN_FACES_DIR, photo_data)
             if not os.path.exists(filepath):
+                print(f"ERROR: Photo file not found at {filepath}")
                 raise HTTPException(status_code=404, detail="Photo file not found")
             return FileResponse(filepath)
     finally:

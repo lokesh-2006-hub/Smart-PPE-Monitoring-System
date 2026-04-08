@@ -246,17 +246,22 @@ const WorkersPage = () => {
                                     <tr key={worker.id} className="border-t hover:bg-muted/50 transition-colors">
                                         <td className="px-4 py-3">
                                             <div className="flex items-center space-x-2">
-                                                {worker.photo_url ? (
-                                                    <img
-                                                        src={`${(import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/api/workers/${worker.id}/photo`}
-                                                        alt={worker.name}
-                                                        className="h-10 w-10 rounded-full object-cover border-2 border-primary/20"
-                                                        onError={(e) => {
-                                                            e.target.style.display = 'none';
-                                                            e.target.nextSibling.style.display = 'flex';
-                                                        }}
-                                                    />
-                                                ) : null}
+                                                <div className="relative h-10 w-10 flex-shrink-0">
+                                                    {worker.photo_url ? (
+                                                        <img
+                                                            src={`${(import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '')}/api/workers/${worker.id}/photo`}
+                                                            alt={worker.name}
+                                                            className="h-10 w-10 rounded-full object-cover border-2 border-primary/20 bg-background"
+                                                            onError={(e) => {
+                                                                e.target.style.opacity = '0';
+                                                                e.target.nextSibling.classList.remove('hidden');
+                                                            }}
+                                                        />
+                                                    ) : null}
+                                                    <div className={`absolute inset-0 flex items-center justify-center rounded-full bg-primary/10 text-primary font-bold text-xs ${worker.photo_url && worker.photo_url !== "[BASE64_IN_DB]" ? 'hidden' : ''}`}>
+                                                        {worker.name ? worker.name.charAt(0).toUpperCase() : '?'}
+                                                    </div>
+                                                </div>
                                                 <button
                                                     onClick={() => openPhotoModal(worker)}
                                                     className="h-10 w-10 rounded-full bg-muted hover:bg-primary/10 flex items-center justify-center transition-colors border border-border"

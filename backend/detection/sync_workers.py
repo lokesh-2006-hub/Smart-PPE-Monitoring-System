@@ -11,9 +11,22 @@ def sync_workers(api_url, output_dir):
         print(f"Created directory: {output_dir}")
 
     try:
-        response = requests.get(f"{api_url}/api/workers/sync", timeout=10)
-        response.raise_for_status()
-        workers = response.data if hasattr(response, 'data') else response.json()
+        # Retry logic for Render spin-up
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                print(f"Connection attempt {attempt + 1}/{max_retries}...")
+                response = requests.get(f"{api_url}/api/workers/sync", timeout=60)
+                response.raise_for_status()
+                break
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                if attempt == max_retries - 1:
+                    raise
+                print("Server is waking up... waiting 10 seconds before retry.")
+                import time
+                time.sleep(10)
+        
+        workers = response.json()
         
         print(f"Found {len(workers)} workers with photos.")
         

@@ -141,9 +141,34 @@ def init_db():
         generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         generated_by VARCHAR(255),
         INDEX idx_report_type (report_type),
-        INDEX idx_generated_at (generated_at)
-    )
-    """)
+    # Migration logic for existing databases
+    try:
+        # Add overall_status to attendance if missing
+        cursor.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS overall_status VARCHAR(50) DEFAULT 'pass'")
+        # Add raw_payload to attendance if missing
+        cursor.execute("ALTER TABLE attendance ADD COLUMN IF NOT EXISTS raw_payload TEXT")
+        # DROP problematic foreign key on attendance.person_id
+        # We catch the error in case it doesn't exist or already dropped
+        try:
+            # Check if FK exists first to avoid error spam
+            cursor.execute("""
+                SELECT CONSTRAINT_NAME 
+                FROM information_schema.KEY_COLUMN_USAGE 
+                WHERE TABLE_NAME = 'attendance' AND COLUMN_NAME = 'person_id' 
+                AND REFERENCED_TABLE_NAME = 'persons'
+                LIMIT 1
+            """)
+            fk_res = cursor.fetchone()
+            if fk_res:
+                fk_name = fk_res['CONSTRAINT_NAME']
+                cursor.execute(f"ALTER TABLE attendance DROP FOREIGN KEY {fk_name}")
+                print(f"✅ Dropped foreign key {fk_name} from attendance")
+        except:
+            pass
+    except mysql.connector.Error as mig_err:
+        print(f"Warning: Migration partially failed: {mig_err}")
+    
+    conn.commit()
     
     # Settings table
     cursor.execute("""
@@ -366,15 +391,21 @@ def update_attendance(payload: PPEPayload):
             else:
                 worker_id = worker['id']
 
-            # Also maintain persons table for compatibility (optional)
-            cursor.execute("SELECT id FROM persons WHERE name = %s", (payload.name,))
-            person = cursor.fetchone()
-            if not person:
-                cursor.execute("INSERT INTO persons (name, meta) VALUES (%s, '{}')", (payload.name,))
-                conn.commit()
-                person_id = cursor.lastrowid
-            else:
-                person_id = person['id']
+            # Also maintain persons table for compatibility
+            person_id = None
+            try:
+                cursor.execute("SELECT id FROM persons WHERE name = %s", (payload.name,))
+                person = cursor.fetchone()
+                if not person:
+                    cursor.execute("INSERT INTO persons (name, meta) VALUES (%s, '{}')", (payload.name,))
+                    conn.commit()
+                    person_id = cursor.lastrowid
+                else:
+                    person_id = person['id']
+            except Exception as person_err:
+                print(f"Warning: Failed to update persons table: {person_err}")
+                # We prioritize worker_id now, so person_id failure shouldn't crash the whole thing
+                person_id = None
 
             # Check if record exists for this worker today
             cursor.execute("""
@@ -403,7 +434,7 @@ def update_attendance(payload: PPEPayload):
                 conn.commit()
                 record_id = existing_record['id']
             else:
-                # INSERT new record - use worker_id
+                # INSERT new record
                 cursor.execute(
                     """
                     INSERT INTO attendance 
@@ -411,12 +442,12 @@ def update_attendance(payload: PPEPayload):
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
-                        worker_id,  # CHANGED: Use worker_id instead of person_id from persons table
+                        person_id,  # Use person_id for the legacy column, worker_id logic handled separately
                         payload.name,
                         ts,
                         payload.source,
                         json.dumps(ppe_keys),
-                        overall_status,  # Use calculated status based on settings
+                        overall_status,
                         json.dumps(payload.dict())
                     )
                 )

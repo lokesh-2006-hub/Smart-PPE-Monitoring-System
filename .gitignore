@@ -54,6 +54,7 @@ backend/data/known_faces/
 
 # Model files (too large for git)
 *.pt
+!backend/models/my_model.pt
 *.onnx
 *.tflite
 *.weights

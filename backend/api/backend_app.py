@@ -299,7 +299,23 @@ def get_announcement():
 
 @app.on_event("startup")
 def on_startup():
-    init_db()
+    try:
+        print("🚀 Starting database initialization/migration...")
+        init_db()
+        print("✅ Database initialization complete.")
+    except Exception as e:
+        print(f"❌ CRITICAL: Database initialization failed: {e}")
+        # We don't re-raise so the server can still start and we can debug
+
+@app.get("/api/admin/migrate")
+def manual_migrate():
+    """Manual trigger for DB migration to see errors"""
+    try:
+        init_db()
+        return {"status": "success", "message": "Migration run complete"}
+    except Exception as e:
+        import traceback
+        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
 
 @app.post("/register_person", response_model=Dict)
 def register_person(payload: RegisterPersonPayload):
@@ -324,7 +340,8 @@ def register_person(payload: RegisterPersonPayload):
 
 @app.post("/update_attendance", response_model=Dict)
 def update_attendance(payload: PPEPayload):
-    print(f"\n*** UPDATE_ATTENDANCE CALLED - Worker: {payload.name}, Status: {payload.status} ***\n")
+    # VERSION MARKER: 1.0.5 - Used to verify the latest code is live
+    print(f"\n*** UPDATE_ATTENDANCE V1.0.5 CALLED - Worker: {payload.name} ***\n")
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:

@@ -136,7 +136,7 @@ const Settings = () => {
                         smsGateway: data.notifications.sms_gateway ?? prev.smsGateway
                     }));
                 }
-                if (data.gates && data.gates.list) {
+                if (data.gates && Array.isArray(data.gates.list)) {
                     setGates(data.gates.list);
                 }
             } catch (error) {
@@ -168,13 +168,13 @@ const Settings = () => {
                     escalation_time: alertSettings.escalationTime,
                     alert_email_list: alertSettings.alertEmailList
                 };
-            } else if (section === 'reports') {
                 settings = {
                     frequency: reportSettings.frequency,
                     format: reportSettings.format,
                     email_list: reportSettings.emailList,
                     retention: reportSettings.retention
                 };
+            } else if (section === 'notifications') {
                 settings = {
                     smtp_host: notificationSettings.smtpHost,
                     smtp_port: notificationSettings.smtpPort,
@@ -339,7 +339,13 @@ const Settings = () => {
                                     <h2 className="text-2xl font-bold mb-1">Gate Management</h2>
                                     <p className="text-sm text-muted-foreground">Configure monitoring gates and camera streams</p>
                                 </div>
-                                <button className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
+                                <button 
+                                    onClick={() => {
+                                        const newId = gates.length > 0 ? Math.max(...gates.map(g => g.id)) + 1 : 1;
+                                        setGates([...gates, { id: newId, name: `Gate ${newId}`, cameraUrl: '', enabled: true }]);
+                                    }}
+                                    className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
+                                >
                                     <Plus className="h-4 w-4" />
                                     <span>Add Gate</span>
                                 </button>

@@ -514,7 +514,7 @@ def list_persons(limit: int = 100):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT * FROM persons ORDER BY created_at DESC LIMIT %s", (limit,))
+        cursor.execute("SELECT id, name, employee_id, meta, created_at FROM persons ORDER BY created_at DESC LIMIT %s", (limit,))
         rows = cursor.fetchall()
         out = []
         for p in rows:
@@ -888,6 +888,12 @@ def list_workers(
         """, params + [limit, offset])
         
         workers = cursor.fetchall()
+        
+        # Optimization: Don't send huge Base64 strings in the list view (it's too heavy)
+        # We only send a marker, the UI will fetch the actual image from the /photo endpoint
+        for w in workers:
+            if w.get('photo_url') and str(w['photo_url']).startswith('data:image'):
+                w['photo_url'] = "[BASE64_IN_DB]"
         
         return {
             "total": total,

@@ -136,6 +136,9 @@ const Settings = () => {
                         smsGateway: data.notifications.sms_gateway ?? prev.smsGateway
                     }));
                 }
+                if (data.gates && data.gates.list) {
+                    setGates(data.gates.list);
+                }
             } catch (error) {
                 console.error('Failed to load settings:', error);
             }
@@ -172,7 +175,6 @@ const Settings = () => {
                     email_list: reportSettings.emailList,
                     retention: reportSettings.retention
                 };
-            } else if (section === 'notifications') {
                 settings = {
                     smtp_host: notificationSettings.smtpHost,
                     smtp_port: notificationSettings.smtpPort,
@@ -180,6 +182,8 @@ const Settings = () => {
                     smtp_password: notificationSettings.smtpPassword,
                     sms_gateway: notificationSettings.smsGateway
                 };
+            } else if (section === 'gates') {
+                settings = { list: gates };
             }
 
             await client.put('/api/settings', {
@@ -342,33 +346,69 @@ const Settings = () => {
                             </div>
 
                             <div className="border-t pt-6 space-y-4">
-                                {gates.map((gate) => (
-                                    <div key={gate.id} className="border rounded-lg p-4">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div>
-                                                <h3 className="font-semibold">{gate.name}</h3>
-                                                <p className="text-sm text-muted-foreground">{gate.cameraUrl || 'No camera configured'}</p>
+                                {gates.map((gate, index) => (
+                                    <div key={gate.id} className="border rounded-lg p-4 space-y-4">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 space-y-2">
+                                                <label className="text-sm font-medium">Gate Name</label>
+                                                <input 
+                                                    type="text"
+                                                    value={gate.name}
+                                                    onChange={(e) => {
+                                                        const newGates = [...gates];
+                                                        newGates[index].name = e.target.value;
+                                                        setGates(newGates);
+                                                    }}
+                                                    className="w-full px-3 py-2 border rounded-lg bg-background"
+                                                />
                                             </div>
-                                            <div className="flex space-x-2">
-                                                <button className="p-2 hover:bg-muted rounded">
-                                                    <Edit2 className="h-4 w-4" />
+                                            <div className="ml-4 flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => {
+                                                        const newGates = [...gates];
+                                                        newGates[index].enabled = !newGates[index].enabled;
+                                                        setGates(newGates);
+                                                    }}
+                                                    className={cn(
+                                                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
+                                                        gate.enabled ? "bg-primary" : "bg-muted"
+                                                    )}
+                                                >
+                                                    <span className={cn(
+                                                        "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                                        gate.enabled ? "translate-x-6" : "translate-x-1"
+                                                    )} />
                                                 </button>
-                                                <button className="p-2 hover:bg-destructive/10 text-destructive rounded">
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
+                                                <span className="text-sm font-medium">{gate.enabled ? 'Enabled' : 'Disabled'}</span>
                                             </div>
                                         </div>
-                                        <div className="flex items-center space-x-2">
-                                            <span className="text-sm">Status:</span>
-                                            <span className={cn(
-                                                "text-xs px-2 py-1 rounded-full",
-                                                gate.enabled ? "bg-green-500/10 text-green-500" : "bg-muted text-muted-foreground"
-                                            )}>
-                                                {gate.enabled ? 'Active' : 'Inactive'}
-                                            </span>
+                                        
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">Stream URL (MJPEG)</label>
+                                            <input 
+                                                type="text"
+                                                value={gate.cameraUrl}
+                                                placeholder="http://10.x.x.x:5000/video_feed"
+                                                onChange={(e) => {
+                                                    const newGates = [...gates];
+                                                    newGates[index].cameraUrl = e.target.value;
+                                                    setGates(newGates);
+                                                }}
+                                                className="w-full px-3 py-2 border rounded-lg bg-background font-mono text-xs"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground">
+                                                Use your Raspberry Pi's IP address and port 5000.
+                                            </p>
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+
+                            <div className="flex space-x-3 pt-4 border-t">
+                                <button onClick={() => handleSave('gates')} className="flex items-center space-x-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
+                                    <Save className="h-4 w-4" />
+                                    <span>Save Gates Configuration</span>
+                                </button>
                             </div>
                         </div>
                     )}

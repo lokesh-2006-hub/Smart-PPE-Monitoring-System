@@ -10,13 +10,27 @@ const Dashboard = () => {
     const [stats, setStats] = useState({ total: 0, pass: 0, fail: 0 });
     const [ppeRequirements, setPpeRequirements] = useState(null);
 
+    const [streamUrl, setStreamUrl] = useState('http://localhost:5000/video_feed');
+
     useEffect(() => {
         const fetchLatest = async () => {
             try {
-                // Fetch PPE requirements from settings
+                // Fetch settings for camera URL
                 const settingsRes = await client.get('/api/settings');
-                if (settingsRes.data && settingsRes.data.system && settingsRes.data.system.ppe_items) {
-                    setPpeRequirements(settingsRes.data.system.ppe_items);
+                if (settingsRes.data) {
+                    if (settingsRes.data.system && settingsRes.data.system.ppe_items) {
+                        setPpeRequirements(settingsRes.data.system.ppe_items);
+                    }
+                    // Get camera URL from gates if available
+                    if (settingsRes.data.gates) {
+                        const gatesList = settingsRes.data.gates.list || [];
+                        if (gatesList.length > 0) {
+                            const activeGate = gatesList.find(g => g.enabled) || gatesList[0];
+                            if (activeGate.cameraUrl) {
+                                setStreamUrl(activeGate.cameraUrl);
+                            }
+                        }
+                    }
                 }
 
                 // Fetch daily report for stats
@@ -65,7 +79,7 @@ const Dashboard = () => {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="relative aspect-video bg-black rounded-xl overflow-hidden border border-border shadow-lg group">
                         <img
-                            src="http://localhost:5000/video_feed"
+                            src={streamUrl}
                             alt="Live PPE Detection Feed"
                             className="w-full h-full object-cover"
                             onError={(e) => {

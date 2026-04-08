@@ -101,6 +101,26 @@ pip install ultralytics flask flask-cors requests
 pip install face_recognition
 ```
 
+### 5. Accessing the Live Video Feed
+Once the server is running on the Pi, you need to configure the Web Dashboard to see it.
+
+1.  **Configure Gateway IP**:
+    - Go to your Web Dashboard -> **Settings** -> **Gate Management**.
+    - Find "Gate 1" and Enter the URL: `http://<PI_IP_ADDRESS>:5000/video_feed` (e.g., `http://10.153.22.70:5000/video_feed`).
+    - Click **Save Gates Configuration**.
+
+2.  **Bypass Browser Security (Chrome/Edge)**:
+    - Since Vercel uses `https://` and your Pi uses `http://`, browsers will block the video by default.
+    - Click the **Lock icon** (or "Not Secure") in the address bar next to your Vercel URL.
+    - Select **Site Settings**.
+    - Scroll down to **Insecure content** and set it to **Allow**.
+    - Refresh your Dashboard page.
+
+3.  **Known Faces Folder**:
+    - Ensure you have created the directory for worker photos:
+    - `mkdir -p ~/Smart-PPE-Monitoring-System/backend/data/known_faces`
+    - Add folders for each worker (e.g., `known_faces/Lokesh/photo1.jpg`).
+
 ### 🔗 Step 3: Run the Stream Server
 You need to pass the URL of your hosted backend API so the Pi can send attendance and compliance data to the cloud.
 

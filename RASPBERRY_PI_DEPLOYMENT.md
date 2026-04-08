@@ -81,7 +81,7 @@ sudo apt install -y libgtk-3-dev libbz2-dev libgl1 python3-opencv
 Clone your repository to the Raspberry Pi:
 ```bash
 git clone <your-github-repo-url>
-cd Smart-PPE-Compliance-Monitoring-System/backend/detection
+cd Smart-PPE-Monitoring-System/backend/detection
 ```
 
 Create a virtual environment with access to the system packages (important for OpenCV):

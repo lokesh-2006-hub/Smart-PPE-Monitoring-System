@@ -1725,10 +1725,10 @@ async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
         if not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
         
-        # Get worker name from database to ensure they exist
+        # Get worker name and actual ID from database using either primary key or employee_id
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT name FROM workers WHERE id = %s", (worker_id,))
+        cursor.execute("SELECT id, name FROM workers WHERE id = %s OR employee_id = %s", (worker_id, str(worker_id)))
         worker = cursor.fetchone()
         
         if not worker:
@@ -1736,6 +1736,7 @@ async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
             conn.close()
             raise HTTPException(status_code=404, detail="Worker not found")
         
+        actual_db_id = worker['id']
         worker_name = worker['name']
         
         # Encode image directly to Base64 String
@@ -1747,7 +1748,7 @@ async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
         
         # Save photo specifically inside the database
         try:
-            cursor.execute("UPDATE workers SET photo_url = %s WHERE id = %s", (photo_base64, worker_id))
+            cursor.execute("UPDATE workers SET photo_url = %s WHERE id = %s", (photo_base64, actual_db_id))
             conn.commit()
             db_updated = True
             message = "Photo saved directly to TiDB Cloud Database successfully."
@@ -1795,7 +1796,7 @@ def get_worker_photo(worker_id: int):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT photo_url, name FROM workers WHERE id = %s", (worker_id,))
+        cursor.execute("SELECT photo_url, name FROM workers WHERE id = %s OR employee_id = %s", (worker_id, str(worker_id)))
         result = cursor.fetchone()
         
         if not result:
@@ -1827,12 +1828,13 @@ def get_worker_photos(worker_id: int):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT name FROM workers WHERE id = %s", (worker_id,))
+        cursor.execute("SELECT id, name FROM workers WHERE id = %s OR employee_id = %s", (worker_id, str(worker_id)))
         worker = cursor.fetchone()
         
         if not worker:
             raise HTTPException(status_code=404, detail="Worker not found")
         
+        actual_db_id = worker['id']
         worker_name = worker['name']
         worker_face_dir = os.path.join(KNOWN_FACES_DIR, worker_name)
         

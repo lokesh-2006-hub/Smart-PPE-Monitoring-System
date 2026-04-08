@@ -74,7 +74,7 @@ sudo apt update && sudo apt upgrade -y
 Install critical system libraries required for OpenCV and Dlib (Face Recognition):
 ```bash
 sudo apt install -y build-essential cmake pkg-config libx11-dev libopenblas-dev
-sudo apt install -y libgtk-3-dev libbz2-dev libgl1-mesa-glx python3-opencv
+sudo apt install -y libgtk-3-dev libbz2-dev libgl1 python3-opencv
 ```
 
 ### 📦 Step 2: Set Up the Project

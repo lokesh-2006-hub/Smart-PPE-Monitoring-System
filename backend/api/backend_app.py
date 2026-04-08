@@ -201,7 +201,12 @@ def init_db():
     try:
         cursor.execute("ALTER TABLE workers MODIFY photo_url LONGTEXT")
     except mysql.connector.Error:
-        pass
+        try:
+            # TiDB has limitations on modifying VARCHAR to LONGTEXT, so drop and recreate it.
+            cursor.execute("ALTER TABLE workers DROP COLUMN photo_url")
+            cursor.execute("ALTER TABLE workers ADD COLUMN photo_url LONGTEXT")
+        except mysql.connector.Error as db_err:
+            print(f"CRITICAL: Failed to migrate photo_url column: {db_err}")
     
     conn.commit()
     cursor.close()
@@ -1747,10 +1752,10 @@ async def upload_worker_photo(worker_id: int, file: UploadFile = File(...)):
             db_updated = True
             message = "Photo saved directly to TiDB Cloud Database successfully."
         except mysql.connector.Error as db_err:
-            print(f"Error updating photo in DB: {db_err}")
-            db_updated = False
             conn.rollback()
-            message = "Failed to save to database."
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=500, detail=f"Database Update Failed: {str(db_err)}")
         
         # Optionally, still write it to known_faces to allow for local dev usage
         try:

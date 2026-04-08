@@ -141,6 +141,10 @@ def init_db():
         generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         generated_by VARCHAR(255),
         INDEX idx_report_type (report_type),
+        INDEX idx_generated_at (generated_at)
+    )
+    """)
+    
     # Migration logic for existing databases
     try:
         # Add overall_status to attendance if missing
@@ -532,10 +536,11 @@ def update_attendance(payload: PPEPayload):
             return {"status": "updated" if existing_record else "created", "record_id": record_id}
         except Exception as e:
             import traceback
-            traceback.print_exc()
-            conn.rollback()
+            tb = traceback.format_exc()
             print(f"❌ Error in update_attendance: {e}")
-            raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+            print(tb)
+            conn.rollback()
+            raise HTTPException(status_code=500, detail=f"Database Error: {str(e)}\nTraceback: {tb}")
     finally:
         cursor.close()
         conn.close()

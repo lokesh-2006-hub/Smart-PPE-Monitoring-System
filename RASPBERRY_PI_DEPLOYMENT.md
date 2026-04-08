@@ -116,17 +116,17 @@ Once the server is running on the Pi, you need to configure the Web Dashboard to
     - Scroll down to **Insecure content** and set it to **Allow**.
     - Refresh your Dashboard page.
 
-3.  **Known Faces Folder**:
-    - Ensure you have created the directory for worker photos:
-    - `mkdir -p ~/Smart-PPE-Monitoring-System/backend/data/known_faces`
-    - Add folders for each worker (e.g., `known_faces/Lokesh/photo1.jpg`).
+3.  **Sync Worker Photos**:
+    - The system now **automatically** downloads worker photos from the cloud every time you start the server.
+    - If you add a new worker on the website, simply **restart** the detection script on the Pi to sync the new faces.
+    - Manual sync command (optional): `python3 backend/detection/sync_workers.py --api-url https://smart-ppe-monitoring-system1.onrender.com`
 
 ### 🔗 Step 3: Run the Stream Server
 You need to pass the URL of your hosted backend API so the Pi can send attendance and compliance data to the cloud.
 
 Ensure your webcam is connected, then run:
 ```bash
-python ppe_stream_server.py --source 0 --api-url https://smart-ppe-backend.onrender.com
+python3 backend/detection/ppe_stream_server.py --source 0 --api-url https://smart-ppe-monitoring-system1.onrender.com
 ```
 *(Replace the `--api-url` value with your actual Render backend URL).*
 

@@ -530,6 +530,20 @@ def list_persons(limit: int = 100):
         cursor.close()
         conn.close()
 
+@app.get("/api/workers/sync", response_model=List[Dict])
+def sync_workers():
+    """Sync workers with photos for edge devices (Pi)"""
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Fetch all workers who have a photo
+        cursor.execute("SELECT id, name, employee_id, photo_url FROM workers WHERE photo_url IS NOT NULL AND photo_url != ''")
+        rows = cursor.fetchall()
+        return rows
+    finally:
+        cursor.close()
+        conn.close()
+
 @app.get("/reports/daily", response_model=Dict)
 def daily_report(date: Optional[str] = None):
     conn = get_db_connection()

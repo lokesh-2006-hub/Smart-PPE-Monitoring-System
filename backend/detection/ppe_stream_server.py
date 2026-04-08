@@ -515,6 +515,16 @@ if __name__ == '__main__':
     if args.api_url:
         API_URL = args.api_url
 
+    # Automated Sync from Cloud to Pi
+    try:
+        from sync_workers import sync_workers
+        print("Checking for new worker photos...")
+        sync_workers(API_URL, args.known_faces)
+    except ImportError:
+        print("Warning: sync_workers.py not found. Skipping auto-sync.")
+    except Exception as e:
+        print(f"Warning: Auto-sync failed: {e}")
+
     # Start detection thread
     detection_thread = threading.Thread(
         target=detection_loop,
